@@ -27,7 +27,7 @@ pip install fire
 pip install git+https://github.com/patrick-kidger/torchcde.git
 
 To run, execute:
-python -m examples.sde_gan
+python -m experiments.experiment_ornstein_uhlenbeck
 """
 import fire
 import matplotlib.pyplot as plt
