@@ -27,7 +27,7 @@ pip install fire
 pip install git+https://github.com/patrick-kidger/torchcde.git
 
 To run, execute:
-python -m experiments.experiment_ornstein_uhlenbeck
+python -m experiments.sde_gan
 """
 import fire
 import matplotlib.pyplot as plt
@@ -196,7 +196,7 @@ def get_data(batch_size, device):
 
     class OrnsteinUhlenbeckSDE(torch.nn.Module):
         sde_type = 'ito'
-        noise_type = 'scalar'
+        noise_type = 'diagonal'
 
         def __init__(self, mu, theta, sigma):
             super().__init__()
@@ -205,13 +205,13 @@ def get_data(batch_size, device):
             self.register_buffer('sigma', torch.as_tensor(sigma))
 
         def f(self, t, y):
-            return self.mu * t - self.theta * y
+            return   self.theta * y
 
         def g(self, t, y):
-            return self.sigma.expand(y.size(0), 1, 1) * (2 * t / t_size)
+            return self.sigma * y 
 
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.02, theta=0.1, sigma=0.4).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 2 - 1
+    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.1, sigma=0.25).to(device)
+    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)
 
@@ -272,8 +272,14 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
         generated_samples_time = generated_samples[:, time]
         _, bins, _ = plt.hist(real_samples_time.cpu().numpy(), bins=32, alpha=0.7, label='Real', color='dodgerblue',
                               density=True)
-        bin_width = bins[1] - bins[0]
-        num_bins = int((generated_samples_time.max() - generated_samples_time.min()).item() // bin_width)
+        bin_width = abs(bins[1] - bins[0])
+
+        ## print both num bins for generated samples and for real samples 
+
+
+        num_bins = max(int(abs(generated_samples_time.max() - generated_samples_time.min().item()) // bin_width),1)
+
+
         plt.hist(generated_samples_time.cpu().numpy(), bins=num_bins, alpha=0.7, label='Generated', color='crimson',
                  density=True)
         plt.legend()
@@ -340,12 +346,12 @@ def main(
         num_layers=1,          # How many hidden layers to have in the various MLPs.
 
         # Training hyperparameters. Be prepared to tune these very carefully, as with any GAN.
-        generator_lr=2e-4,      # Learning rate often needs careful tuning to the problem.
-        discriminator_lr=1e-3,  # Learning rate often needs careful tuning to the problem.
+        generator_lr= 0.0002,      # Learning rate often needs careful tuning to the problem.
+        discriminator_lr=0.0005,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
-        init_mult1=3,           # Changing the initial parameter size can help.
-        init_mult2=0.5,         #
+        init_mult1=1,           # Changing the initial parameter size can help.
+        init_mult2=0.3,         #
         weight_decay=0.01,      # Weight decay.
         swa_step_start=5000,    # When to start using stochastic weight averaging.
 
@@ -354,6 +360,9 @@ def main(
         num_plot_samples=50,                  # How many samples to use on the plots at the end.
         plot_locs=(0.1, 0.3, 0.5, 0.7, 0.9),  # Plot some marginal distributions at this proportion of the way along.
 ):
+        # Create file objects for writing the losses
+    unaveraged_file = open("BSMcalibratedunaveragedloss.txt", "w")
+    averaged_file = open("BSMcalibratedaveragedloss.txt", "w")
     is_cuda = torch.cuda.is_available()
     device = 'cuda' if is_cuda else 'cpu'
     if not is_cuda:
@@ -427,8 +436,16 @@ def main(
                                                     averaged_discriminator.module)
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f} "
                              f"Loss (averaged): {total_averaged_loss:.4f}")
+                averaged_file.write(f"{step}\t{total_averaged_loss}\n")
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
+
+    
+    unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
+
+    unaveraged_file.close()
+    averaged_file.close()
+
     generator.load_state_dict(averaged_generator.module.state_dict())
     discriminator.load_state_dict(averaged_discriminator.module.state_dict())
 
