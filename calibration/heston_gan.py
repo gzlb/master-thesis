@@ -24,6 +24,7 @@ def calibration():
         param_dict = dict(zip(hyperparameters.keys(), params))
 
         # Run training with the current set of hyperparameters
+        print("Parameters used for calibration", param_dict)
         loss = abs(main(**param_dict))
 
         # Check if current loss is the best so far
