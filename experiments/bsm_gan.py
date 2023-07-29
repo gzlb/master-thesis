@@ -346,12 +346,12 @@ def main(
         num_layers=1,          # How many hidden layers to have in the various MLPs.
 
         # Training hyperparameters. Be prepared to tune these very carefully, as with any GAN.
-        generator_lr= 0.0002,      # Learning rate often needs careful tuning to the problem.
-        discriminator_lr=0.0005,  # Learning rate often needs careful tuning to the problem.
+        generator_lr= 2e-4,      # Learning rate often needs careful tuning to the problem.
+        discriminator_lr=1e-3,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
-        init_mult1=1,           # Changing the initial parameter size can help.
-        init_mult2=0.3,         #
+        init_mult1=3,           # Changing the initial parameter size can help.
+        init_mult2=0.5,         #
         weight_decay=0.01,      # Weight decay.
         swa_step_start=5000,    # When to start using stochastic weight averaging.
 
