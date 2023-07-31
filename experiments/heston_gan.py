@@ -298,7 +298,7 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
 
 
 
-        num_bins = max(int(abs(generated_samples_time.max() - generated_samples_time.min().item()) // bin_width),1)
+        num_bins = max(int(abs(generated_samples_time.max() - generated_samples_time.min().item()) // bin_width),5)
 
 
         plt.hist(generated_samples_time.cpu().numpy(), bins=num_bins, alpha=0.7, label='Generated', color='crimson',

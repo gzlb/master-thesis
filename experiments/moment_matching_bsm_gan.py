@@ -37,10 +37,7 @@ import torchcde
 import torchsde
 import tqdm
 
-
-###################
-# First some standard helper objects.
-###################
+from helpers import GaussLegendre
 
 class LipSwish(torch.nn.Module):
     def forward(self, x):
@@ -55,10 +52,6 @@ class MLP(torch.nn.Module):
                  LipSwish()]
         for _ in range(num_layers - 1):
             model.append(torch.nn.Linear(mlp_size, mlp_size))
-            ###################
-            # LipSwish activations are useful to constrain the Lipschitz constant of the discriminator.
-            # (For simplicity we additionally use them in the generator, but that's less important.)
-            ###################
             model.append(LipSwish())
         model.append(torch.nn.Linear(mlp_size, out_size))
         if tanh:
@@ -68,12 +61,6 @@ class MLP(torch.nn.Module):
     def forward(self, x):
         return self._model(x)
 
-
-###################
-# Now we define the SDEs.
-#
-# We begin by defining the generator SDE.
-###################
 class GeneratorFunc(torch.nn.Module):
     sde_type = 'stratonovich'
     noise_type = 'general'
@@ -83,27 +70,14 @@ class GeneratorFunc(torch.nn.Module):
         self._noise_size = noise_size
         self._hidden_size = hidden_size
 
-        ###################
-        # Drift and diffusion are MLPs. They happen to be the same size.
-        # Note the final tanh nonlinearity: this is typically important for good performance, to constrain the rate of
-        # change of the hidden state.
-        # If you have problems with very high drift/diffusions then consider scaling these so that they squash to e.g.
-        # [-3, 3] rather than [-1, 1].
-        ###################
         self._drift = MLP(1 + hidden_size, hidden_size, mlp_size, num_layers, tanh=True)
         self._diffusion = MLP(1 + hidden_size, hidden_size * noise_size, mlp_size, num_layers, tanh=True)
 
     def f_and_g(self, t, x):
-        # t has shape ()
-        # x has shape (batch_size, hidden_size)
         t = t.expand(x.size(0), 1)
         tx = torch.cat([t, x], dim=1)
         return self._drift(tx), self._diffusion(tx).view(x.size(0), self._hidden_size, self._noise_size)
 
-
-###################
-# Now we wrap it up into something that computes the SDE.
-###################
 class Generator(torch.nn.Module):
     def __init__(self, data_size, initial_noise_size, noise_size, hidden_size, mlp_size, num_layers):
         super().__init__()
@@ -114,28 +88,86 @@ class Generator(torch.nn.Module):
         self._func = GeneratorFunc(noise_size, hidden_size, mlp_size, num_layers)
         self._readout = torch.nn.Linear(hidden_size, data_size)
 
-    def forward(self, ts, batch_size):
-        # ts has shape (t_size,) and corresponds to the points we want to evaluate the SDE at.
+    def lognormal_distribution(self, x, t, S0, r, sigma):
+        drift, diffusion = self._func.f_and_g(t, x)
+        return drift + 0.5 * diffusion**2
 
-        ###################
-        # Actually solve the SDE.
-        ###################
+    def sample_target_data(self, t, batch_size):
+        # Black-Scholes model parameters
+        S0 = 100.0  # Initial price
+        r = 0.05    # Risk-free interest rate
+        sigma = 0.2 # Volatility
+
+        num_quadrature_points = 5  # Choose an appropriate number of quadrature points.
+
+        # Create function for the lognormal distribution for numerical integration.
+        f = lambda x, t: self.lognormal_distribution(x, t, S0, r, sigma)
+
+        gl = GaussLegendre()
+        gauss_legendre = GaussLegendre()
+
+        # Use torch.quad to perform numerical integration.
+        quadrature_samples = []
+        for i in range(num_quadrature_points):
+            quadrature_samples.append(torch.quad(f, -float("inf"), float("inf"), args=(t,), epsabs=1e-4)[0])
+
+        quadrature_samples = torch.tensor(quadrature_samples)
+
+        # Apply the composite rule using the GaussLegendre class
+        target_samples = gauss_legendre.apply_composite_rule(quadrature_samples, 1, None, None)
+
+        # Now target_samples contains the results after applying the Gauss-Legendre composite rule
+
+
+        return target_samples
+    def forward(self, ts, batch_size):
         init_noise = torch.randn(batch_size, self._initial_noise_size, device=ts.device)
         x0 = self._initial(init_noise)
 
-        ###################
-        # We use the reversible Heun method to get accurate gradients whilst using the adjoint method.
-        ###################
-        xs = torchsde.sdeint_adjoint(self._func, x0, ts, method='reversible_heun', dt=1.0,
-                                     adjoint_method='adjoint_reversible_heun',)
-        xs = xs.transpose(0, 1)
+        moment_matching_solver = MomentMatchingSolver(self._func)
+
+        xs = [x0]
+
+        for i in range(1, len(ts)):
+            dt = ts[i] - ts[i - 1]
+            x_prev = xs[-1]
+            t = ts[i]
+
+            target_samples = self.sample_target_data(t, batch_size)
+
+            updated_x = moment_matching_solver.moment_matching_update(t, x_prev, target_samples)
+            xs.append(updated_x)
+
+        xs = torch.stack(xs, dim=0)
         ys = self._readout(xs)
 
-        ###################
-        # Normalise the data to the form that the discriminator expects, in particular including time as a channel.
-        ###################
         ts = ts.unsqueeze(0).unsqueeze(-1).expand(batch_size, ts.size(0), 1)
         return torchcde.linear_interpolation_coeffs(torch.cat([ts, ys], dim=2))
+
+class MomentMatchingSolver:
+    def __init__(self, func):
+        self._func = func
+        self.gauss_legendre = GaussLegendre()  # Initialize the custom Gaussian quadrature
+
+    def moment_matching_update(self, t, x, target_samples):
+        drift, diffusion = self._func.f_and_g(t, x)
+
+        generated_mean = x.mean(dim=0)
+        generated_cov = torch.matmul(x.T, x) / x.size(0)
+
+        # Use the custom GaussLegendre class instead of torch.quadrature.decomposition.gauss_legendre_weights
+        gauss_legendre_weights = self.gauss_legendre.get_weights(len(target_samples)).unsqueeze(-1)
+
+        target_mean = torch.sum(gauss_legendre_weights * target_samples, dim=0)
+        target_centered = target_samples - target_mean
+        target_cov = torch.matmul(target_centered.T, target_centered) / len(target_samples)
+
+        drift_update = target_mean - generated_mean
+        diffusion_update = target_cov - generated_cov
+
+        return drift + drift_update, diffusion + diffusion_update
+
+
 
 
 ###################
@@ -276,9 +308,9 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
 
         ## print both num bins for generated samples and for real samples 
 
-        
-        num_bins = max(int((generated_samples_time.max() - generated_samples_time.min()).item() // bin_width), 5)
-        print(num_bins)
+
+        num_bins = max(abs(generated_samples_time.max() - generated_samples_time.min().item()) // bin_width,5)
+
 
         plt.hist(generated_samples_time.cpu().numpy(), bins=num_bins, alpha=0.7, label='Generated', color='crimson',
                  density=True)
