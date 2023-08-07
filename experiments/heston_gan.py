@@ -245,7 +245,7 @@ def get_data(batch_size, device):
     ys_num = ys.numel()
     to_drop = torch.randperm(ys_num)[:int(0.3 * ys_num)]
     ys.view(-1)[to_drop] = float('nan')
-
+    ys[ys < 0] = float('nan')
     ###################
     # Typically important to normalise data. Note that the data is normalised with respect to the statistics of the
     # initial data, _not_ the whole time series. This seems to help the learning process, presumably because if the
