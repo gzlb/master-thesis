@@ -37,7 +37,7 @@ import torchcde
 import torchsde
 import tqdm
 
-from helpers import GaussLegendre
+from experiments.helpers import GaussLegendre
 
 class LipSwish(torch.nn.Module):
     def forward(self, x):

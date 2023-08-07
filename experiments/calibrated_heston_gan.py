@@ -440,6 +440,7 @@ def main(
         # We constrain the Lipschitz constant of the discriminator using carefully-chosen clipping (and the use of
         # LipSwish activation functions).
         ###################
+        unaveraged_loss = []
         with torch.no_grad():
             for module in discriminator.modules():
                 if isinstance(module, torch.nn.Linear):
@@ -462,6 +463,8 @@ def main(
 
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
+                unaveraged_loss.append(total_unaveraged_loss)
+
     unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
 
     unaveraged_file.close()
@@ -472,8 +475,7 @@ def main(
     
     _, _, test_dataloader = get_data(batch_size=batch_size, device=device)
 
-    plot(ts, generator, test_dataloader, num_plot_samples, plot_locs)
-
+    return unaveraged_loss
 
 
 if __name__ == '__main__':

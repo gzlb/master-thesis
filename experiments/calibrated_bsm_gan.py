@@ -350,8 +350,8 @@ def main(
         discriminator_lr=0.0005,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
-        init_mult1=1,           # Changing the initial parameter size can help.
-        init_mult2=0.3,         #
+        init_mult1=1.7,           # Changing the initial parameter size can help.
+        init_mult2=0.1,         #
         weight_decay=0.01,      # Weight decay.
         swa_step_start=5000,    # When to start using stochastic weight averaging.
 
@@ -418,6 +418,8 @@ def main(
         # We constrain the Lipschitz constant of the discriminator using carefully-chosen clipping (and the use of
         # LipSwish activation functions).
         ###################
+        unaveraged_loss = []
+
         with torch.no_grad():
             for module in discriminator.modules():
                 if isinstance(module, torch.nn.Linear):
@@ -439,6 +441,7 @@ def main(
                 averaged_file.write(f"{step}\t{total_averaged_loss}\n")
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
+                unaveraged_loss.append(total_unaveraged_loss)
 
     
     unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
@@ -451,7 +454,8 @@ def main(
 
     _, _, test_dataloader = get_data(batch_size=batch_size, device=device)
 
-    plot(ts, generator, test_dataloader, num_plot_samples, plot_locs)
+
+    return unaveraged_loss
 
 
 if __name__ == '__main__':

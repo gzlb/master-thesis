@@ -367,12 +367,12 @@ def main(
         mlp_size=16,           # How big the layers in the various MLPs are.
         num_layers=1,          # How many hidden layers to have in the various MLPs.
 
-        generator_lr= 2e-4,      # Learning rate often needs careful tuning to the problem.
-        discriminator_lr=1e-3,  # Learning rate often needs careful tuning to the problem.
+        generator_lr= 0.0005,      # Learning rate often needs careful tuning to the problem.
+        discriminator_lr=0.002,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
-        init_mult1=3,           # Changing the initial parameter size can help.
-        init_mult2=0.5,         #
+        init_mult1=1.3,           # Changing the initial parameter size can help.
+        init_mult2=0.7,         #
         weight_decay=0.01,      # Weight decay.
         swa_step_start=5000,
 
@@ -439,6 +439,8 @@ def main(
         # We constrain the Lipschitz constant of the discriminator using carefully-chosen clipping (and the use of
         # LipSwish activation functions).
         ###################
+
+        averaged_loss = []
         with torch.no_grad():
             for module in discriminator.modules():
                 if isinstance(module, torch.nn.Linear):
@@ -458,6 +460,7 @@ def main(
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f} "
                              f"Loss (averaged): {total_averaged_loss:.4f}")
                 averaged_file.write(f"{step}\t{total_averaged_loss}\n")
+                averaged_loss.append(total_averaged_loss)
 
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
@@ -472,6 +475,8 @@ def main(
     _, _, test_dataloader = get_data(batch_size=batch_size, device=device)
 
     plot(ts, generator, test_dataloader, num_plot_samples, plot_locs)
+    
+    return averaged_loss
 
 
 

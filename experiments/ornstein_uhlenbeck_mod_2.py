@@ -27,7 +27,7 @@ pip install fire
 pip install git+https://github.com/patrick-kidger/torchcde.git
 
 To run, execute:
-python -m experiments.sde_gan
+python -m experiments.experiment_ornstein_uhlenbeck
 """
 import fire
 import matplotlib.pyplot as plt
@@ -196,7 +196,7 @@ def get_data(batch_size, device):
 
     class OrnsteinUhlenbeckSDE(torch.nn.Module):
         sde_type = 'ito'
-        noise_type = 'diagonal'
+        noise_type = 'scalar'
 
         def __init__(self, mu, theta, sigma):
             super().__init__()
@@ -205,15 +205,15 @@ def get_data(batch_size, device):
             self.register_buffer('sigma', torch.as_tensor(sigma))
 
         def f(self, t, y):
-            return   self.theta * y
+            return self.mu * t - self.theta * y
 
         def g(self, t, y):
-            return self.sigma * y 
+            return self.sigma.expand(y.size(0), 1, 1) * (2 * t / t_size)
 
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.1, sigma=0.25).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    ou_sde = OrnsteinUhlenbeckSDE(mu=0.0, theta=0.01, sigma=0.4).to(device)
+    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 2 - 1
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
-    ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
+    ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)
 
     ###################
     # To demonstrate how to handle irregular data, then here we additionally drop some of the data (by setting it to
@@ -272,14 +272,8 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
         generated_samples_time = generated_samples[:, time]
         _, bins, _ = plt.hist(real_samples_time.cpu().numpy(), bins=32, alpha=0.7, label='Real', color='dodgerblue',
                               density=True)
-        bin_width = abs(bins[1] - bins[0])
-
-        ## print both num bins for generated samples and for real samples 
-
-        
-        num_bins = max(int((generated_samples_time.max() - generated_samples_time.min()).item() // bin_width), 5)
-        print(num_bins)
-
+        bin_width = bins[1] - bins[0]
+        num_bins = int((generated_samples_time.max() - generated_samples_time.min()).item() // bin_width)
         plt.hist(generated_samples_time.cpu().numpy(), bins=num_bins, alpha=0.7, label='Generated', color='crimson',
                  density=True)
         plt.legend()
@@ -345,24 +339,21 @@ def main(
         mlp_size=16,           # How big the layers in the various MLPs are.
         num_layers=1,          # How many hidden layers to have in the various MLPs.
 
-        generator_lr= 0.0005,      # Learning rate often needs careful tuning to the problem.
-        discriminator_lr=0.002,  # Learning rate often needs careful tuning to the problem.
+        # Training hyperparameters. Be prepared to tune these very carefully, as with any GAN.
+        generator_lr=2e-4,      # Learning rate often needs careful tuning to the problem.
+        discriminator_lr=1e-3,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
-        init_mult1=1.7,           # Changing the initial parameter size can help.
-        init_mult2=0.1,         #
+        init_mult1=3,           # Changing the initial parameter size can help.
+        init_mult2=0.5,         #
         weight_decay=0.01,      # Weight decay.
         swa_step_start=5000,    # When to start using stochastic weight averaging.
-   # When to start using stochastic weight averaging.
 
         # Evaluation and plotting hyperparameters
         steps_per_print=10,                   # How often to print the loss.
         num_plot_samples=50,                  # How many samples to use on the plots at the end.
         plot_locs=(0.1, 0.3, 0.5, 0.7, 0.9),  # Plot some marginal distributions at this proportion of the way along.
 ):
-        # Create file objects for writing the losses
-    unaveraged_file = open("BSMcalibratedunaveragedloss.txt", "w")
-    averaged_file = open("BSMcalibratedaveragedloss.txt", "w")
     is_cuda = torch.cuda.is_available()
     device = 'cuda' if is_cuda else 'cpu'
     if not is_cuda:
@@ -418,8 +409,6 @@ def main(
         # We constrain the Lipschitz constant of the discriminator using carefully-chosen clipping (and the use of
         # LipSwish activation functions).
         ###################
-
-
         with torch.no_grad():
             for module in discriminator.modules():
                 if isinstance(module, torch.nn.Linear):
@@ -438,23 +427,15 @@ def main(
                                                     averaged_discriminator.module)
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f} "
                              f"Loss (averaged): {total_averaged_loss:.4f}")
-                averaged_file.write(f"{step}\t{total_averaged_loss}\n")
-
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
-
-    
-    unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
-
-    unaveraged_file.close()
-    averaged_file.close()
-
     generator.load_state_dict(averaged_generator.module.state_dict())
     discriminator.load_state_dict(averaged_discriminator.module.state_dict())
 
     _, _, test_dataloader = get_data(batch_size=batch_size, device=device)
 
     plot(ts, generator, test_dataloader, num_plot_samples, plot_locs)
+
 
 if __name__ == '__main__':
     fire.Fire(main)
