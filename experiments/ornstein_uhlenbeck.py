@@ -266,8 +266,11 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
     generated_samples = generated_samples[..., 1]
 
     # Plot histograms
-    for prop in plot_locs:
+    for i, prop in enumerate(plot_locs):
         time = int(prop * (real_samples.size(1) - 1))
+
+        if i == 0:  # For the first iteration, set time to 0
+            time = 0
         real_samples_time = real_samples[:, time]
         generated_samples_time = generated_samples[:, time]
         _, bins, _ = plt.hist(real_samples_time.cpu().numpy(), bins=32, alpha=0.7, label='Real', color='dodgerblue',

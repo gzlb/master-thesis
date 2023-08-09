@@ -209,8 +209,9 @@ def get_data(batch_size, device):
 
         def g(self, t, y):
             return self.sigma * y 
-
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.1, sigma=0.25).to(device)
+        
+    sigma = torch.tensor(6)/100
+    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.2/100, sigma=sigma).to(device)
     y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
@@ -222,7 +223,7 @@ def get_data(batch_size, device):
     ys_num = ys.numel()
     to_drop = torch.randperm(ys_num)[:int(0.3 * ys_num)]
     ys.view(-1)[to_drop] = float('nan')
-    ys[ys < 0] = float('nan')
+    ys[ys < 0] = 0
 
     ###################
     # Typically important to normalise data. Note that the data is normalised with respect to the statistics of the
@@ -268,7 +269,7 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
 
     # Plot histograms
     for prop in plot_locs:
-        time = int(prop * (real_samples.size(1) - 1))
+        time = int(prop * (real_samples.size(1) - 1)) 
         real_samples_time = real_samples[:, time]
         generated_samples_time = generated_samples[:, time]
         _, bins, _ = plt.hist(real_samples_time.cpu().numpy(), bins=32, alpha=0.7, label='Real', color='dodgerblue',
@@ -279,7 +280,6 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
 
         
         num_bins = max(int((generated_samples_time.max() - generated_samples_time.min()).item() // bin_width), 5)
-        print(num_bins)
 
         plt.hist(generated_samples_time.cpu().numpy(), bins=num_bins, alpha=0.7, label='Generated', color='crimson',
                  density=True)
