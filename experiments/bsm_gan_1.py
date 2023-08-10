@@ -212,7 +212,8 @@ def get_data(batch_size, device):
         
     sigma = torch.tensor(6)/100
     ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.5/100, sigma=sigma).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    #y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
 
@@ -232,13 +233,14 @@ def get_data(batch_size, device):
     ###################
     y0_flat = ys[0].view(-1)
     y0_not_nan = y0_flat.masked_select(~torch.isnan(y0_flat))
-    ys = (ys - y0_not_nan.mean()) / y0_not_nan.std()
+    ys = (ys - y0_not_nan.mean()) / y0_not_nan.std()  
 
     ###################
     # As discussed, time must be included as a channel for the discriminator.
     ###################
     ys = torch.cat([ts.unsqueeze(0).unsqueeze(-1).expand(dataset_size, t_size, 1),
                     ys.transpose(0, 1)], dim=2)
+    print("ys", ys.size())
     # shape (dataset_size=1000, t_size=100, 1 + data_size=3)
 
     ###################
@@ -258,9 +260,14 @@ def get_data(batch_size, device):
 def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
     # Get samples
     real_samples, = next(iter(dataloader))
+    print("size", real_samples.size())
+    print("average", torch.mean(real_samples[:,0]))
+
     assert num_plot_samples <= real_samples.size(0)
     real_samples = torchcde.LinearInterpolation(real_samples).evaluate(ts)
     real_samples = real_samples[..., 1]
+
+    print("average", torch.mean(real_samples[:,0]))
 
     with torch.no_grad():
         generated_samples = generator(ts, real_samples.size(0)).cpu()
@@ -273,7 +280,7 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
     
         if i == 0:  # For the first iteration, set time to 0
             time = 0
-        
+
         real_samples_time = real_samples[:, time]
         generated_samples_time = generated_samples[:, time]
         _, bins, _ = plt.hist(real_samples_time.cpu().numpy(), bins=32, alpha=0.7, label='Real', color='dodgerblue',

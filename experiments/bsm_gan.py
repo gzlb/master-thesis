@@ -211,8 +211,9 @@ def get_data(batch_size, device):
             return self.sigma * y 
         
     sigma = torch.tensor(6)/100
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.2/100, sigma=sigma).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.5/100, sigma=sigma).to(device)
+    #y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
 

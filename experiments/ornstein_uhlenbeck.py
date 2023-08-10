@@ -211,10 +211,11 @@ def get_data(batch_size, device):
             return self.sigma.expand(y.size(0), 1, 1) * (2 * t / t_size)
 
     ou_sde = OrnsteinUhlenbeckSDE(mu=0.02, theta=0.1, sigma=0.4).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 2 - 1
+    #y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)
-
+    print("SDE size",ys.size())
     ###################
     # To demonstrate how to handle irregular data, then here we additionally drop some of the data (by setting it to
     # NaN.)
@@ -237,6 +238,8 @@ def get_data(batch_size, device):
     ###################
     ys = torch.cat([ts.unsqueeze(0).unsqueeze(-1).expand(dataset_size, t_size, 1),
                     ys.transpose(0, 1)], dim=2)
+    print("ys", ys.size())
+
     # shape (dataset_size=1000, t_size=100, 1 + data_size=3)
 
     ###################
@@ -256,9 +259,13 @@ def get_data(batch_size, device):
 def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
     # Get samples
     real_samples, = next(iter(dataloader))
+    print("size", real_samples.size())
+    print("average", torch.mean(real_samples[:,0,1]))
+
     assert num_plot_samples <= real_samples.size(0)
     real_samples = torchcde.LinearInterpolation(real_samples).evaluate(ts)
     real_samples = real_samples[..., 1]
+    print("average", torch.mean(real_samples[:,0]))
 
     with torch.no_grad():
         generated_samples = generator(ts, real_samples.size(0)).cpu()
@@ -285,7 +292,8 @@ def plot(ts, generator, dataloader, num_plot_samples, plot_locs):
         plt.title(f'Marginal distribution at time {time}.')
         plt.tight_layout()
         plt.show()
-
+        print("Real Samples", real_samples)
+        print("Generated Samples", generated_samples)
     real_samples = real_samples[:num_plot_samples]
     generated_samples = generated_samples[:num_plot_samples]
 
