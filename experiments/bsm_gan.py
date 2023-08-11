@@ -110,7 +110,7 @@ class Generator(torch.nn.Module):
         self._initial_noise_size = initial_noise_size
         self._hidden_size = hidden_size
 
-        self._initial = MLP(initial_noise_size, hidden_size, mlp_size, num_layers, tanh=False)
+        self._initial = MLP(initial_noise_size, hidden_size, mlp_size, num_layers, tanh=True)
         self._func = GeneratorFunc(noise_size, hidden_size, mlp_size, num_layers)
         self._readout = torch.nn.Linear(hidden_size, data_size)
 
@@ -167,7 +167,7 @@ class Discriminator(torch.nn.Module):
     def __init__(self, data_size, hidden_size, mlp_size, num_layers):
         super().__init__()
 
-        self._initial = MLP(1 + data_size, hidden_size, mlp_size, num_layers, tanh=False)
+        self._initial = MLP(1 + data_size, hidden_size, mlp_size, num_layers, tanh=True)
         self._func = DiscriminatorFunc(data_size, hidden_size, mlp_size, num_layers)
         self._readout = torch.nn.Linear(hidden_size, 1)
 
@@ -212,8 +212,8 @@ def get_data(batch_size, device):
         
     sigma = torch.tensor(6)/100
     ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.5/100, sigma=sigma).to(device)
-    #y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
-    y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
+    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    #y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
     ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
 
@@ -231,9 +231,9 @@ def get_data(batch_size, device):
     # initial data, _not_ the whole time series. This seems to help the learning process, presumably because if the
     # initial condition is wrong then it's pretty hard to learn the rest of the SDE correctly.
     ###################
-    y0_flat = ys[0].view(-1)
-    y0_not_nan = y0_flat.masked_select(~torch.isnan(y0_flat))
-    ys = (ys - y0_not_nan.mean()) / y0_not_nan.std()
+    #y0_flat = ys[0].view(-1)
+    #y0_not_nan = y0_flat.masked_select(~torch.isnan(y0_flat))
+    #ys = (ys - y0_not_nan.mean()) / y0_not_nan.std()
 
     ###################
     # As discussed, time must be included as a channel for the discriminator.
