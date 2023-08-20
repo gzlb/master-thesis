@@ -338,7 +338,7 @@ def evaluate_loss(ts, batch_size, dataloader, generator, discriminator):
             total_loss += loss.item() * batch_size
     return total_loss / total_samples
 
-
+0
 def main(
         # Architectural hyperparameters. These are quite small for illustrative purposes.
         initial_noise_size=5,  # How many noise dimensions to sample at the start of the SDE.
@@ -347,8 +347,8 @@ def main(
         mlp_size=16,           # How big the layers in the various MLPs are.
         num_layers=1,          # How many hidden layers to have in the various MLPs.
 
-        generator_lr= 0.0005,      # Learning rate often needs careful tuning to the problem.
-        discriminator_lr=0.002,  # Learning rate often needs careful tuning to the problem.
+        generator_lr= 0.0002,      # Learning rate often needs careful tuning to the problem.
+        discriminator_lr=0.0005,  # Learning rate often needs careful tuning to the problem.
         batch_size=1024,        # Batch size.
         steps=10000,            # How many steps to train both generator and discriminator for.
         init_mult1=1.7,           # Changing the initial parameter size can help.

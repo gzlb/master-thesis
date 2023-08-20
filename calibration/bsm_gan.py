@@ -10,7 +10,7 @@ def calibration():
     hyperparameters = {
         'generator_lr': [1e-4, 2e-4, 5e-4],
         'discriminator_lr': [5e-4, 1e-3, 2e-3],
-        'steps' : [100],
+        'steps' : [1000],
         'init_mult1': [0.8, 1, 1.3, 1.5, 1.7],
         'init_mult2': [0.1,0.3,0.5,0.7],
     }

@@ -209,11 +209,13 @@ def get_data(batch_size, device):
 
         def g(self, t, y):
             return self.sigma * y 
-
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.1, sigma=0.25).to(device)
-    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20
+        
+    sigma = torch.tensor(6)/100
+    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.5/100, sigma=sigma).to(device)
+    y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
+    #y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
-    ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)
+    ys = torchsde.sdeint(ou_sde, y0, ts, dt=1e-1)   
 
     ###################
     # To demonstrate how to handle irregular data, then here we additionally drop some of the data (by setting it to
@@ -222,7 +224,8 @@ def get_data(batch_size, device):
     ys_num = ys.numel()
     to_drop = torch.randperm(ys_num)[:int(0.3 * ys_num)]
     ys.view(-1)[to_drop] = float('nan')
-    ys[ys < 0] = float('nan')
+    ys[ys < 0] = 0
+
     ###################
     # Typically important to normalise data. Note that the data is normalised with respect to the statistics of the
     # initial data, _not_ the whole time series. This seems to help the learning process, presumably because if the
