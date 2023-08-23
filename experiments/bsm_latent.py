@@ -57,7 +57,7 @@ class BsmSDE(object):
     noise_type = "diagonal"
     sde_type = "ito"
 
-    def __init__(self, a = 0.1, b = 0.25):
+    def __init__(self, a = 0.05, b = 0.4):
         super(BsmSDE, self).__init__()
         self.a = a
         self.b = b
