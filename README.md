@@ -41,14 +41,14 @@ A short overview of each script:
 - **bsm_gan_mss:** BSM-GAN with normalization and uniform distribution as initial condition, mean square stable
 - **bsm_gan_notmss:** BSM-GAN with normalization and uniform distribution as initial condition, not-mean square stable
 - **bsm_gan:**  BSM-GAN without normalization and uniform distribution as initial condition, mean square stable
-- **bsm_latent:** latent-BSM 
+- **bsm_latent:** latent-BSM, with normalization and normal distribution as initial condition, not-mean square stable
 - **calibrated_bsm_gan:** BSM-GAN with normalization and uniform distribution as initial condition, mean square stable, here calibration is applied in the main function
 - **heston_gan:** Heston-GAN, with normalization and uniform distribution as initial condition
-- **heston_latent:** latent-Heston
-- **calibrated_heston_gan:** BSM-GAN with normalization and uniform distribution as initial condition, here calibration is applied in the main function.
-- **ornstein_uhlenbeck_mod_1:** Description of script 8.
-- **ornstein_uhlenbeck_mod_2:** Description of script 9.
-- **ornstein_uhlenbeck_mod_3:** Description of script 10.
-- **ornstein_uhlenbeck_mod_4:** Description of script 7.
-- **ornstein_uhlenbeck_div:** Description of script 8.
-- **ornstein_uhlenbeck** Description of script 9.
+- **heston_latent:** latent-Heston with normalization and normal distribution as initial condition
+- **calibrated_heston_gan:** BSM-GAN with normalization and uniform distribution as initial condition, here calibration is applied in the main function
+- **ornstein_uhlenbeck_mod_1:** Ornstein-Uhlenbeck experiment 1
+- **ornstein_uhlenbeck_mod_2:** Ornstein-Uhlenbeck experiment 2
+- **ornstein_uhlenbeck_mod_3:** Ornstein-Uhlenbeck experiment 3
+- **ornstein_uhlenbeck_mod_4:** Ornstein-Uhlenbeck experiment 4
+- **ornstein_uhlenbeck_div:** Ornstein-Uhlenbeck experiment 5
+- **ornstein_uhlenbeck** Ornstein-Uhlenbeck experiment, very first experiment of Appendix B. This is a replication of Kidger's results 
