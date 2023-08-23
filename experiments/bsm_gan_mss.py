@@ -363,8 +363,8 @@ def main(
         plot_locs=(0.1, 0.3, 0.5, 0.7, 0.9),  # Plot some marginal distributions at this proportion of the way along.
 ):
         # Create file objects for writing the losses
-    unaveraged_file = open("BSMcalibratedunaveragedloss.txt", "w")
-    averaged_file = open("BSMcalibratedaveragedloss.txt", "w")
+    # unaveraged_file = open("BSMcalibratedunaveragedloss.txt", "w")
+    # averaged_file = open("BSMcalibratedaveragedloss.txt", "w")
     is_cuda = torch.cuda.is_available()
     device = 'cuda' if is_cuda else 'cpu'
     if not is_cuda:
@@ -440,16 +440,16 @@ def main(
                                                     averaged_discriminator.module)
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f} "
                              f"Loss (averaged): {total_averaged_loss:.4f}")
-                averaged_file.write(f"{step}\t{total_averaged_loss}\n")
+                # averaged_file.write(f"{step}\t{total_averaged_loss}\n")
 
             else:
                 trange.write(f"Step: {step:3} Loss (unaveraged): {total_unaveraged_loss:.4f}")
 
     
-    unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
+    # unaveraged_file.write(f"{step}\t{total_unaveraged_loss}\n")
 
-    unaveraged_file.close()
-    averaged_file.close()
+    # unaveraged_file.close()
+    # averaged_file.close()
 
     generator.load_state_dict(averaged_generator.module.state_dict())
     discriminator.load_state_dict(averaged_discriminator.module.state_dict())
