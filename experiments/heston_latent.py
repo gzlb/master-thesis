@@ -53,18 +53,12 @@ class LinearScheduler(object):
         return self._val
 
 
-class StochasticLorenz(object):
-    """Stochastic Lorenz attractor.
-
-    Used for simulating ground truth and obtaining noisy data.
-    Details described in Section 7.2 https://arxiv.org/pdf/2001.01328.pdf
-    Default a, b from https://openreview.net/pdf?id=HkzRQhR9YX
-    """
+class HestonSDE(object):
     noise_type = "diagonal"
     sde_type = "ito"
 
     def __init__(self, a: Sequence = (.02, 3, 0.004), b: Sequence = (3)):
-        super(StochasticLorenz, self).__init__()
+        super(HestonSDE, self).__init__()
         self.a = a
         self.b = b
 
@@ -238,7 +232,7 @@ def make_dataset(t0, t1, batch_size, noise_std, device):
     # Concatenate the one-dimensional objects to create _y0
     _y0 = torch.cat((y1, y2), dim=1)
     ts = torch.linspace(t0, t1, steps=100, device=device)
-    xs = StochasticLorenz().sample(_y0, ts, noise_std, normalize=True)
+    xs = HestonSDE().sample(_y0, ts, noise_std, normalize=True)
     return xs, ts
 
 
