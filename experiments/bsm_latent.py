@@ -53,18 +53,12 @@ class LinearScheduler(object):
         return self._val
 
 
-class StochasticLorenz(object):
-    """Stochastic Lorenz attractor.
-
-    Used for simulating ground truth and obtaining noisy data.
-    Details described in Section 7.2 https://arxiv.org/pdf/2001.01328.pdf
-    Default a, b from https://openreview.net/pdf?id=HkzRQhR9YX
-    """
+class BsmSDE(object):
     noise_type = "diagonal"
     sde_type = "ito"
 
     def __init__(self, a = 0.1, b = 0.25):
-        super(StochasticLorenz, self).__init__()
+        super(BsmSDE, self).__init__()
         self.a = a
         self.b = b
 
@@ -207,7 +201,7 @@ class LatentSDE(nn.Module):
 def make_dataset(t0, t1, batch_size, noise_std, device):
     _y0 = torch.randn(batch_size, 1, device=device)
     ts = torch.linspace(t0, t1, steps=100, device=device)
-    xs = StochasticLorenz().sample(_y0, ts, noise_std, normalize=True)
+    xs = BsmSDE().sample(_y0, ts, noise_std, normalize=True)
     return xs, ts
 
 

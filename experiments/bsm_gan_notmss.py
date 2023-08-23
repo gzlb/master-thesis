@@ -194,7 +194,7 @@ def get_data(batch_size, device):
     dataset_size = 8192
     t_size = 64
 
-    class OrnsteinUhlenbeckSDE(torch.nn.Module):
+    class BsmSDE(torch.nn.Module):
         sde_type = 'ito'
         noise_type = 'diagonal'
 
@@ -211,7 +211,7 @@ def get_data(batch_size, device):
             return self.sigma * y 
         
     
-    ou_sde = OrnsteinUhlenbeckSDE(mu=0.00, theta=0.05, sigma=0.4).to(device)
+    ou_sde = BsmSDE(mu=0.00, theta=0.05, sigma=0.4).to(device)
     y0 = torch.rand(dataset_size, device=device).unsqueeze(-1) * 100 + 20  
     #y0 = torch.randn(dataset_size, device=device).unsqueeze(-1)
     ts = torch.linspace(0, t_size - 1, t_size, device=device)
