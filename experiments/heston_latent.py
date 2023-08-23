@@ -12,15 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Train a latent SDE on data from a stochastic Lorenz attractor.
-
-Reproduce the toy example in Section 7.2 of https://arxiv.org/pdf/2001.01328.pdf
-
-To run this file, first run the following to install extra requirements:
-pip install fire
-
+"""Train a latent SDE for Jeston
 To run, execute:
-python -m examples.latent_sde_lorenz
+python -m experiments.heston_latent
 """
 import logging
 import os
@@ -85,21 +79,6 @@ class HestonSDE(object):
         g2 = b1* sqrt_x2 
         
         return torch.cat([g1, g2], dim=1)
-
-        '''
-        S_t = x1
-        v_t = x2
-
-        mu =a1
-        kappa = a2
-        theta = a3
-        psi = a4 
-
-
-        g_1 x1 * sqrt(x2)
-
-        g_2 a4 * sqrt(x2)
-        '''
 
     @torch.no_grad()
     def sample(self, x0, ts, noise_std, normalize):

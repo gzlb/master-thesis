@@ -12,23 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Train an SDE as a GAN, on data from a time-dependent Ornstein--Uhlenbeck process.
-
-Training SDEs as GANs was introduced in "Neural SDEs as Infinite-Dimensional GANs".
-https://arxiv.org/abs/2102.03657
-
-This reproduces the toy example in Section 4.1 of that paper.
-
-This additionally uses the improvements introduced in "Efficient and Accurate Gradients for Neural SDEs".
-https://arxiv.org/abs/2105.13493
-
-To run this file, first run the following to install extra requirements:
-pip install fire
-pip install git+https://github.com/patrick-kidger/torchcde.git
-
-To run, execute:
-python -m examples.heston_gan_corr
+"""Train an SDE as a GAN, on data from the Heston SDEs.
+python -m experiments.heston_gan
 """
+
 import fire
 import matplotlib.pyplot as plt
 import torch
